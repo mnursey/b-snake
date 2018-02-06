@@ -139,13 +139,15 @@ def run_ai(data):
             print(str(p[0]) + ' ' + str(p[1]))
         print('End Of Connected')'''
     end = time.time()
+    current_path = None
     print('Time to link waypoints: ' + str((end - start) * 1000) + 'ms')
     for goal in goals:
         start = time.time()
         path = find_path(my_snake_head, goal, waypoints, links, grid, [1, 2, 4])
         end = time.time()
         print('Time to get path from o_path: ' + str((end - start) * 1000) + 'ms')
-        current_path = path
+        if len(path) < len(current_path):
+            current_path = path
 
     if current_path is not None:
         '''print('Printing path')

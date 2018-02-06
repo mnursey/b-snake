@@ -169,6 +169,11 @@ def generate_waypoints(grid, obstacles):
                             if n not in generated_points:
                                 generated_points.append(n)
                                 waypoints.append(n)
+                if len(neigh) == 3:
+                    for n in neigh:
+                        if n not in generated_points:
+                            generated_points.append(n)
+                            waypoints.append(n)
                 if on_edge_of_grid(pos, grid):
                     for n in neigh:
                         if n not in generated_points:

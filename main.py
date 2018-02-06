@@ -77,6 +77,16 @@ def smart_direction(a, b, grid, obstacles):
         return 'down'
 
 
+def path_distance(path):
+    dis = 0
+    path = tuple(path)
+    index = 0
+    while index < len(path) - 1:
+        dis = dis + distance(path[index], path[index + 1])
+        index = index + 1
+    return dis
+
+
 def distance(a, b):
     dx = abs(a[0] - b[0])
     dy = abs(a[1] - b[1])
@@ -116,6 +126,7 @@ def open_neighbours(pos, grid):
 
 
 def run_ai(data):
+    # Important Info:
     move = 'left'
     snake_id = data['you']['id']
     goals = objectives(data)
@@ -126,7 +137,7 @@ def run_ai(data):
     grid = generate_grid(snake_id, my_snake_length, data)
 
     my_snake_head = point_to_list(data['you']['body']['data'][0])
-    # current_goal = None
+
     current_path = None
     start = time.time()
     waypoints = generate_waypoints(grid, [1, 2, 4])
@@ -134,10 +145,6 @@ def run_ai(data):
     print('Time to waypoints: ' + str((end - start) * 1000) + 'ms')
     start = time.time()
     links = link_waypoints(waypoints, grid, [1, 2, 4])
-    '''for w in links:
-        for p in w:
-            print(str(p[0]) + ' ' + str(p[1]))
-        print('End Of Connected')'''
     end = time.time()
     current_path = None
     print('Time to link waypoints: ' + str((end - start) * 1000) + 'ms')
@@ -146,8 +153,13 @@ def run_ai(data):
         path = find_path(my_snake_head, goal, waypoints, links, grid, [1, 2, 4])
         end = time.time()
         print('Time to get path from o_path: ' + str((end - start) * 1000) + 'ms')
-        if len(path) < len(current_path):
+        if current_path is None:
             current_path = path
+
+        if path is not None:
+            # distance of path
+            if path_distance(path) < path_distance(current_path):
+                current_path = path
 
     if current_path is not None:
         '''print('Printing path')

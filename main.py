@@ -1,4 +1,4 @@
-from graph_algorithms import find_path, generate_waypoints, link_waypoints
+from graph_algorithms import find_path, generate_waypoints, link_waypoints, enough_space
 import bottle
 import os
 import time
@@ -77,6 +77,17 @@ def smart_direction(a, b, grid, obstacles):
         return 'down'
 
 
+def move_to_position(origin, direction):
+    if direction is 'up':
+        return (origin[0], origin[1] - 1)
+    if direction is 'down':
+        return (origin[0], origin[1] + 1)
+    if direction is 'right':
+        return (origin[0] + 1, origin[1])
+    if direction is 'left':
+        return (origin[0] - 1, origin[1])
+
+
 def path_distance(path):
     dis = 0
     path = tuple(path)
@@ -136,6 +147,7 @@ def run_ai(data):
         print('About to die of hunger!')
     grid = generate_grid(snake_id, my_snake_length, data)
     my_snake_head = point_to_list(data['you']['body']['data'][0])
+    my_snake_tail = point_to_list(data['you']['body']['data'][-1])
 
     # Do I want or need food?
     # Can I bully?
@@ -147,7 +159,7 @@ def run_ai(data):
     # the enemy is not at or I roam
     current_path = None
     start = time.time()
-    waypoints = generate_waypoints(grid, [1, 2, 4])
+    waypoints = generate_waypoints(grid, [1, 2, 4], my_snake_head)
     end = time.time()
     print('Time to waypoints: ' + str((end - start) * 1000) + 'ms')
     start = time.time()
@@ -163,19 +175,41 @@ def run_ai(data):
                 if enemy_dist < distance(my_snake_head, goal):
                     easy = False
                     break
+        # TODO update hunger level to be dependent on food amount and game boad size
         if not easy and my_snake_health > 20:
             continue
         start = time.time()
         path = find_path(my_snake_head, goal, waypoints, links, grid, [1, 2, 4])
         end = time.time()
-        print('Time to get path from o_path: ' + str((end - start) * 1000) + 'ms')
+        # print('Time to get path from o_path: ' + str((end - start) * 1000) + 'ms')
         if current_path is None:
-            current_path = path
-
-        if path is not None:
-            # distance of path
-            if path_distance(path) < path_distance(current_path):
+            if path is None:
+                continue
+            start = time.time()
+            possible_move = smart_direction(my_snake_head, path[1], grid, [1, 2, 4])
+            block_pos = move_to_position(my_snake_head, possible_move)
+            temp_hold = grid[block_pos[0]][block_pos[1]]
+            grid[block_pos[0]][block_pos[0]] == 1
+            # if the snake body can fit in flood fill then legal move
+            if my_snake_length <= enough_space(path[-1], my_snake_length, grid, [1, 2, 4]):
                 current_path = path
+            grid[block_pos[0]][block_pos[0]] == temp_hold
+            end = time.time()
+            print('Time to fill: ' + str((end - start) * 1000) + 'ms')
+        elif path is not None:
+            # get move, then place move on grid, then flood fill on target.
+            start = time.time()
+            possible_move = smart_direction(my_snake_head, path[1], grid, [1, 2, 4])
+            block_pos = move_to_position(my_snake_head, possible_move)
+            temp_hold = grid[block_pos[0]][block_pos[1]]
+            grid[block_pos[0]][block_pos[0]] == 1
+            # if the snake body can fit in flood fill then legal move
+            if my_snake_length <= enough_space(path[-1], my_snake_length, grid, [1, 2, 4]):
+                if path_distance(path) < path_distance(current_path):
+                    current_path = path
+            grid[block_pos[0]][block_pos[0]] == temp_hold
+            end = time.time()
+            print('Time to fill: ' + str((end - start) * 1000) + 'ms')
 
     if current_path is not None:
         '''print('Printing path')
@@ -185,13 +219,25 @@ def run_ai(data):
         print('Going to ' + str(current_path[1]) + ' by going ' + str(move))
     else:
         # print('No good goals!!!')
-        possible_positions = open_neighbours(my_snake_head, grid)
-        if len(possible_positions) > 0:
-            # taunt = 'That was irrational of you. Not to mention unsportsmanlike.'
-            move = direction(my_snake_head, possible_positions[0])
+        # follow tail
+        tail_neighbours = open_neighbours(my_snake_tail, grid)
+        for n in tail_neighbours:
+            path = find_path(my_snake_head, n, waypoints, links, grid, [1, 2, 4])
+            if path is not None:
+                current_path = path
+                break
+        if path is not None:
+            move = smart_direction(my_snake_head, current_path[1], grid, [1, 2, 4])
+            print('Going to ' + str(current_path[1]) + ' by going ' + str(move))
         else:
-            move = 'down'
-            # taunt = 'That was irrational of you. Not to mention unsportsmanlike.'
+            # TODO: FIND LARGEST PATH OR MOVE TO CENTRE
+            possible_positions = open_neighbours(my_snake_head, grid)
+            if len(possible_positions) > 0:
+                # taunt = 'I love the smell of battle snake in the...'
+                move = direction(my_snake_head, possible_positions[0])
+            else:
+                move = 'down'
+                # taunt = 'That was irrational of you. Not to mention unsportsmanlike.'
         print('Going ' + move)
 
     return move

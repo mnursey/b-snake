@@ -15,6 +15,27 @@ def direction(a, b):
         return 'down'
 
 
+def enough_space(target, target_size, grid, obstacles):
+    visited = []
+    frontier = []
+    if grid[target[0]][target[1]] not in obstacles:
+        frontier.append(target)
+    else:
+        print('early fail')
+        return 0
+    # even earlier exist
+    while len(frontier) > 0 and len(visited) < target_size:
+        for f in frontier:
+            frontier.remove(f)
+            visited.append(f)
+            neigh = neighbours(f, grid, obstacles)
+            for n in neigh:
+                if n not in visited:
+                    frontier.append(n)
+    print('Has room for ' + str(len(visited)))
+    return len(visited)
+
+
 def get_diagonals(node, grid, ignore_list):
     width = len(grid)
     height = len(grid[0])
@@ -140,7 +161,7 @@ def find_path(start, goal, waypoints, links, grid, obstacles):
     return None
 
 
-def generate_waypoints(grid, obstacles):
+def generate_waypoints(grid, obstacles, interest_point):
     '''Fix waypoint placement, also include waypoints around the head.
     A few more waypoints would be better than a broken path'''
     waypoints = []
@@ -174,7 +195,13 @@ def generate_waypoints(grid, obstacles):
                         if n not in generated_points:
                             generated_points.append(n)
                             waypoints.append(n)
-                if on_edge_of_grid(pos, grid):
+                '''if on_edge_of_grid(pos, grid):
+                    for n in neigh:
+                        if n not in generated_points:
+                            generated_points.append(n)
+                            waypoints.append(n)'''
+                if pos[0] == interest_point[0] and pos[1] == interest_point[1]:
+                    # print('Found interest point!')
                     for n in neigh:
                         if n not in generated_points:
                             generated_points.append(n)

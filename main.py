@@ -223,12 +223,13 @@ def run_ai(data):
         tail_neighbours = open_neighbours(my_snake_tail, grid)
         for n in tail_neighbours:
             path = find_path(my_snake_head, n, waypoints, links, grid, [1, 2, 4])
-            if path is not None:
+            if path is not None and n[0] != my_snake_head[0] and n[1] != my_snake_head[1]:
                 current_path = path
                 break
         if path is not None:
-            move = smart_direction(my_snake_head, current_path[1], grid, [1, 2, 4])
-            print('Going to ' + str(current_path[1]) + ' by going ' + str(move))
+            if len(current_path) > 1:
+                move = smart_direction(my_snake_head, current_path[1], grid, [1, 2, 4])
+                print('Going to ' + str(current_path[1]) + ' by going ' + str(move))
         else:
             # TODO: FIND LARGEST PATH OR MOVE TO CENTRE
             possible_positions = open_neighbours(my_snake_head, grid)
@@ -257,7 +258,7 @@ def start():
     return {
         'color': 'DarkMagenta',
         'secondary_color': 'red',
-        'taunt': 'Quite an experience to live in fear, isn\'t it?',
+        'taunt': 'Time for some b snake boys!',
         'name': 'Batty Snake'
     }
 

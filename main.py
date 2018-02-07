@@ -135,9 +135,16 @@ def run_ai(data):
     if my_snake_health < 15:
         print('About to die of hunger!')
     grid = generate_grid(snake_id, my_snake_length, data)
-
     my_snake_head = point_to_list(data['you']['body']['data'][0])
 
+    # Do I want or need food?
+    # Can I bully?
+    # Should I find free space?
+    # Is food near me?
+    # Safe Roam or chase tail?
+
+    # Currently I either eat the nearest food
+    # the enemy is not at or I roam
     current_path = None
     start = time.time()
     waypoints = generate_waypoints(grid, [1, 2, 4])
@@ -149,6 +156,15 @@ def run_ai(data):
     current_path = None
     print('Time to link waypoints: ' + str((end - start) * 1000) + 'ms')
     for goal in goals:
+        easy = True
+        for snake in data['snakes']['data']:
+            if(snake['id'] != snake_id):
+                enemy_dist = distance(point_to_list(snake['body']['data'][0]), goal)
+                if enemy_dist < distance(my_snake_head, goal):
+                    easy = False
+                    break
+        if not easy and my_snake_health > 20:
+            continue
         start = time.time()
         path = find_path(my_snake_head, goal, waypoints, links, grid, [1, 2, 4])
         end = time.time()

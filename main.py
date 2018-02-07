@@ -189,11 +189,11 @@ def run_ai(data):
             possible_move = smart_direction(my_snake_head, path[1], grid, [1, 2, 4])
             block_pos = move_to_position(my_snake_head, possible_move)
             temp_hold = grid[block_pos[0]][block_pos[1]]
-            grid[block_pos[0]][block_pos[0]] == 1
+            grid[block_pos[0]][block_pos[1]] == 1
             # if the snake body can fit in flood fill then legal move
             if my_snake_length <= enough_space(path[-1], my_snake_length, grid, [1, 2, 4]):
                 current_path = path
-            grid[block_pos[0]][block_pos[0]] == temp_hold
+            grid[block_pos[0]][block_pos[1]] == temp_hold
             end = time.time()
             print('Time to fill: ' + str((end - start) * 1000) + 'ms')
         elif path is not None:
@@ -202,12 +202,12 @@ def run_ai(data):
             possible_move = smart_direction(my_snake_head, path[1], grid, [1, 2, 4])
             block_pos = move_to_position(my_snake_head, possible_move)
             temp_hold = grid[block_pos[0]][block_pos[1]]
-            grid[block_pos[0]][block_pos[0]] == 1
+            grid[block_pos[0]][block_pos[1]] == 1
             # if the snake body can fit in flood fill then legal move
             if my_snake_length <= enough_space(path[-1], my_snake_length, grid, [1, 2, 4]):
                 if path_distance(path) < path_distance(current_path):
                     current_path = path
-            grid[block_pos[0]][block_pos[0]] == temp_hold
+            grid[block_pos[0]][block_pos[1]] == temp_hold
             end = time.time()
             print('Time to fill: ' + str((end - start) * 1000) + 'ms')
 

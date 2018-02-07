@@ -226,7 +226,7 @@ def run_ai(data):
             if path is not None and n[0] != my_snake_head[0] and n[1] != my_snake_head[1]:
                 current_path = path
                 break
-        if path is not None:
+        if current_path is not None:
             if len(current_path) > 1:
                 move = smart_direction(my_snake_head, current_path[1], grid, [1, 2, 4])
                 print('Going to ' + str(current_path[1]) + ' by going ' + str(move))

@@ -241,25 +241,28 @@ def path_to_convenient_food():
 
 
 def path_to_tail(my_snake_head, my_snake_tail, waypoints, links, grid):
+    global taunt
     current_path = None
-    tail_neighbours = neighbours(my_snake_tail, grid, BAD_POSITIONS)
+    tail_neighbours = neighbours(my_snake_tail, grid, [])
     for n in tail_neighbours:
         path = None
         print('Looking for tail at ' + str(n) + ' my head at ' + str(my_snake_head))
         if n[0] == my_snake_head[0] and n[1] == my_snake_head[1]:
             current_path = (my_snake_tail, my_snake_tail)
+            taunt = 'Just going to eat my tail...'
             break
+        if n in BAD_POSITIONS:
+            continue
         path = find_path(my_snake_head, n, waypoints, links, grid, BAD_POSITIONS)
-        print(str(path))
         if path is not None:
+            print(str(path))
             if current_path is not None:
-                if len(current_path) > len(path):
+                if path_distance(current_path) > path_distance(path):
                     current_path = path
             else:
                 current_path = path
-            current_path = path
     if current_path is not None:
-        print('found path to tail')
+        print('Found path to tail')
     return current_path
 
 
@@ -270,11 +273,13 @@ def find_best_move(my_snake_head, my_snake_tail, grid):
     possible_positions = neighbours(my_snake_head, grid, [1])
     found_tail = False
     if len(possible_positions) > 0:
+        print('Trying to the best of the worst moves... looking for my tail...')
         for p in possible_positions:
             if p[0] == my_snake_tail[0] and p[1] == my_snake_tail[1]:
                 move = direction(my_snake_head, my_snake_tail)
                 found_tail = True
                 taunt = 'Look at dat tail!'
+                print('Found my tail!')
                 break
     if not found_tail:
         possible_positions = neighbours(my_snake_head, grid, BAD_POSITIONS)
@@ -289,7 +294,7 @@ def find_best_move(my_snake_head, my_snake_tail, grid):
             else:
                 move = 'down'
                 taunt = 'That was irrational of you. Not to mention unsportsmanlike.'
-    print('Could not find tail, and am not interested in food, moving ' + move)
+    print('No decient moves so moving to ' + move)
     return move
 
 
@@ -317,6 +322,7 @@ def move():
     global taunt
     data = bottle.request.json
     # print(str(data))
+    taunt = 'Lil B Big Snake'
     start = time.time()
     output = run_ai(data)
     end = time.time()

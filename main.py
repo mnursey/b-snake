@@ -176,7 +176,7 @@ def run_ai(data):
 
         if current_path is not None:
             if len(current_path) > 1:
-                move = smart_direction(my_snake_head, current_path[1], grid, BAD_POSITIONS)
+                move = direction(my_snake_head, current_path[1])
                 print('Going to tail at' + str(current_path[1]) + ' by going ' + str(move))
         else:
             move = find_best_move(my_snake_head, my_snake_tail, grid)

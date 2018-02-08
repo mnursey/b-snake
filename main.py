@@ -134,13 +134,14 @@ def neighbours(node, grid, ignore_list):
     return open_set
 
 
-def is_starting_body_overlapping(body_parts):
-    if body_parts[0] == body_parts[1]:
-        return True
-    if body_parts[1] == body_parts[2]:
-        return True
-    if body_parts[0] == body_parts[2]:
-        return True
+def is_body_overlapping(body):
+    for b in body:
+        counter = 0
+        for d in body:
+            if b == d:
+                counter = counter + 1
+        if counter > 1:
+            return True
     return False
 
 
@@ -152,7 +153,8 @@ def run_ai(data):
     goals = objectives(data)
     my_snake_length = data['you']['length']
     my_snake_health = data['you']['health']
-    my_snake_overlapping = is_starting_body_overlapping(data['you']['body']['data'])
+    # TODO Update for all body not just starting body
+    my_snake_overlapping = is_body_overlapping(data['you']['body']['data'])
 
     if my_snake_health < 15:
         print('About to die of hunger!')
@@ -188,13 +190,19 @@ def run_ai(data):
     else:
         # follow tail
         current_path = path_to_tail(my_snake_head, my_snake_tail, waypoints, links, grid)
-
+        last_resort = True
         if current_path is not None:
             if len(current_path) > 1:
-                move = smart_direction(my_snake_head, current_path[1], grid, BAD_POSITIONS, my_snake_overlapping)
-                print('Going to tail at' + str(current_path[1]) + ' by going ' + str(move))
-        else:
-            move = find_best_move(my_snake_head, my_snake_tail, grid)
+                # print('overlapping:' + str(my_snake_overlapping))
+                possible_move = smart_direction(my_snake_head, current_path[1], grid, BAD_POSITIONS, my_snake_overlapping)
+                if possible_move is not None:
+                    move = possible_move
+                    last_resort = False
+                    print('Going to tail at' + str(current_path[1]) + ' by going ' + str(move))
+                else:
+                    print('Could not find move to tail')
+        if last_resort:
+            move = find_best_move(my_snake_head, my_snake_tail, grid, my_snake_overlapping)
 
     return move
 
@@ -281,7 +289,7 @@ def path_to_tail(my_snake_head, my_snake_tail, waypoints, links, grid):
     return current_path
 
 
-def find_best_move(my_snake_head, my_snake_tail, grid):
+def find_best_move(my_snake_head, my_snake_tail, grid, my_snake_overlapping):
     global taunt
     # TODO: FIND LARGEST PATH OR MOVE TO CENTRE
     # TODO: UPDATE TAIL FOLLOW TO INCLUDE ENEMY TAILS IF I CANT FIND MY OWN TAIL
@@ -290,7 +298,7 @@ def find_best_move(my_snake_head, my_snake_tail, grid):
     if len(possible_positions) > 0:
         # print('Trying to the best of the worst moves... looking for my tail...')
         for p in possible_positions:
-            if p[0] == my_snake_tail[0] and p[1] == my_snake_tail[1]:
+            if p[0] == my_snake_tail[0] and p[1] == my_snake_tail[1] and not my_snake_overlapping:
                 move = direction(my_snake_head, my_snake_tail)
                 found_tail = True
                 taunt = 'Look at dat tail!'

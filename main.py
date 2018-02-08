@@ -68,6 +68,9 @@ def direction(a, b):
 
 
 def smart_direction(a, b, grid, obstacles):
+    raw_move = direction(a, b)
+    if(move_to_position(a, raw_move)[0] == b[0] and move_to_position(a, raw_move)[1] == b[1]):
+        return raw_move
     if(a[0] > b[0] and grid[a[0] - 1][a[1]] not in obstacles):
         return 'left'
     if(a[0] < b[0] and grid[a[0] + 1][a[1]] not in obstacles):
@@ -176,7 +179,7 @@ def run_ai(data):
 
         if current_path is not None:
             if len(current_path) > 1:
-                move = direction(my_snake_head, current_path[1])
+                move = smart_direction(my_snake_head, current_path[1], grid, BAD_POSITIONS)
                 print('Going to tail at' + str(current_path[1]) + ' by going ' + str(move))
         else:
             move = find_best_move(my_snake_head, my_snake_tail, grid)

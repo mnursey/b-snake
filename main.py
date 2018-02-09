@@ -8,8 +8,9 @@ WALL = 1
 SNAKE = 2
 FOOD = 3
 DANGER = 4
+SNAKE_HEAD = 5
 DIRECTIONS = ['up', 'down', 'left', 'right']
-BAD_POSITIONS = [WALL, SNAKE, DANGER]
+BAD_POSITIONS = [WALL, SNAKE, DANGER, SNAKE_HEAD]
 taunt = 'Make money sell money'
 
 
@@ -52,7 +53,8 @@ def generate_grid(snake_id, my_snake_length, data):
                 danger_spots = neighbours(point_to_list(snake['body']['data'][0]), grid, BAD_POSITIONS)
                 for n in danger_spots:
                     grid[n[0]][n[1]] = DANGER
-
+        snake_head = point_to_list(snake['body']['data'][0])
+        grid[snake_head[0]][snake_head[1]] == SNAKE_HEAD
     return grid
 
 
@@ -145,6 +147,23 @@ def is_body_overlapping(body):
     return False
 
 
+def enemy_near_tail(my_head, my_tail, grid):
+    for n in neighbours(my_tail, grid, []):
+        if n[0] == my_head[0] and n[1] == my_head[1]:
+            continue
+        if grid[n[0]][n[1]] == SNAKE_HEAD:
+            return True
+    return False
+
+
+def get_snake_tails(data):
+    tails = []
+    for snake in data['snakes']['data']:
+        snake_tail = point_to_list(snake['body']['data'][-1])
+        tails.append(snake_tail)
+    return tails
+
+
 def run_ai(data):
     # Important Info:
     global taunt
@@ -169,7 +188,11 @@ def run_ai(data):
     # Safe Roam or chase tail?
 
     start = time.time()
-    waypoints = generate_waypoints(grid, BAD_POSITIONS, my_snake_head)
+    interest_points = []
+    interest_points.append(my_snake_head)
+    for tail in get_snake_tails(data):
+        interest_points.append(tail)
+    waypoints = generate_waypoints(grid, BAD_POSITIONS, interest_points)
     end = time.time()
     print('Time to waypoints: ' + str((end - start) * 1000) + 'ms')
     start = time.time()
@@ -178,9 +201,10 @@ def run_ai(data):
     print('Time to link waypoints: ' + str((end - start) * 1000) + 'ms')
 
     current_path = None
-    if my_snake_health < 50 or my_snake_length < 8:
-        current_path = path_to_safe_food(my_snake_head, my_snake_health, my_snake_length, snake_id, goals, snakes, waypoints, links, grid, my_snake_overlapping)
-
+    if my_snake_health < 50 or my_snake_length < 12:
+        current_path = path_to_safe_food(my_snake_head, my_snake_length, snake_id, goals, snakes, waypoints, links, grid, my_snake_overlapping)
+    elif my_snake_health < 20:
+        current_path = path_to_desperation_food(my_snake_head, my_snake_length, snake_id, goals, waypoints, links, grid, my_snake_overlapping)
     if current_path is not None:
         '''print('Printing path')
         for n in current_path:
@@ -189,27 +213,30 @@ def run_ai(data):
         print('Going to food at ' + str(current_path[1]) + ' by going ' + str(move))
     else:
         # follow tail
-        current_path = path_to_tail(my_snake_head, my_snake_tail, waypoints, links, grid)
-        last_resort = True
+        if not enemy_near_tail(my_snake_head, my_snake_tail, grid):
+            current_path = path_to_tail(my_snake_head, my_snake_tail, waypoints, links, grid)
         if current_path is not None:
             if len(current_path) > 1:
                 # print('overlapping:' + str(my_snake_overlapping))
                 possible_move = smart_direction(my_snake_head, current_path[1], grid, BAD_POSITIONS, my_snake_overlapping)
                 if possible_move is not None:
                     move = possible_move
-                    last_resort = False
                     print('Going to tail at' + str(current_path[1]) + ' by going ' + str(move))
                 else:
                     print('Could not find move to tail')
-        if last_resort:
-            move = find_best_move(my_snake_head, my_snake_tail, grid, my_snake_overlapping)
+                    move = find_best_move(my_snake_head, my_snake_tail, snake_id, snakes, grid, waypoints, links, my_snake_overlapping)
+        else:
+            move = find_best_move(my_snake_head, my_snake_tail, snake_id, snakes, grid, waypoints, links, my_snake_overlapping)
 
     return move
 
 
-def path_to_safe_food(my_snake_head, my_snake_health, my_snake_length, snake_id, goals, snakes, waypoints, links, grid, my_snake_overlapping):
+def path_to_safe_food(my_snake_head, my_snake_length, snake_id, goals, snakes, waypoints, links, grid, my_snake_overlapping):
     current_path = None
     for goal in goals:
+        if current_path is not None:
+            if distance(my_snake_head, goal) > path_distance(current_path):
+                continue
         easy = True
         for snake in snakes:
             if(snake['id'] != snake_id):
@@ -217,37 +244,22 @@ def path_to_safe_food(my_snake_head, my_snake_health, my_snake_length, snake_id,
                 if enemy_dist < distance(my_snake_head, goal):
                     easy = False
                     break
-        # TODO update hunger level to be dependent on food amount and game boad size
-        if not easy and my_snake_health > 20:
+        if not easy:
             continue
         # start = time.time()
         path = find_path(my_snake_head, goal, waypoints, links, grid, BAD_POSITIONS)
         # end = time.time()
         # print('Time to get path from o_path: ' + str((end - start) * 1000) + 'ms')
-        if current_path is None:
-            if path is None:
-                continue
-            # start = time.time()
+        if path is not None:
             possible_move = smart_direction(my_snake_head, path[1], grid, BAD_POSITIONS, my_snake_overlapping)
             block_pos = move_to_position(my_snake_head, possible_move)
             temp_hold = grid[block_pos[0]][block_pos[1]]
             grid[block_pos[0]][block_pos[1]] == 1
-            # if the snake body can fit in flood fill then legal move
             if my_snake_length <= enough_space(path[-1], my_snake_length, grid, BAD_POSITIONS):
-                current_path = path
-            grid[block_pos[0]][block_pos[1]] == temp_hold
-            # end = time.time()
-            # print('Time to fill: ' + str((end - start) * 1000) + 'ms')
-        elif path is not None:
-            # get move, then place move on grid, then flood fill on target.
-            # start = time.time()
-            possible_move = smart_direction(my_snake_head, path[1], grid, BAD_POSITIONS, my_snake_overlapping)
-            block_pos = move_to_position(my_snake_head, possible_move)
-            temp_hold = grid[block_pos[0]][block_pos[1]]
-            grid[block_pos[0]][block_pos[1]] == 1
-            # if the snake body can fit in flood fill then legal move
-            if my_snake_length <= enough_space(path[-1], my_snake_length, grid, BAD_POSITIONS):
-                if path_distance(path) < path_distance(current_path):
+                if current_path is not None:
+                    if(path_distance(path) < path_distance(current_path)):
+                        current_path = path
+                else:
                     current_path = path
             grid[block_pos[0]][block_pos[1]] == temp_hold
             # end = time.time()
@@ -255,8 +267,31 @@ def path_to_safe_food(my_snake_head, my_snake_health, my_snake_length, snake_id,
     return current_path
 
 
-def path_to_desperation_food():
-    return
+def path_to_desperation_food(my_snake_head, my_snake_length, snake_id, goals, waypoints, links, grid, my_snake_overlapping):
+    current_path = None
+    for goal in goals:
+        if current_path is not None:
+            if distance(my_snake_head, goal) > path_distance(current_path):
+                continue
+        # start = time.time()
+        path = find_path(my_snake_head, goal, waypoints, links, grid, BAD_POSITIONS)
+        # end = time.time()
+        # print('Time to get path from o_path: ' + str((end - start) * 1000) + 'ms')
+        if path is not None:
+            possible_move = smart_direction(my_snake_head, path[1], grid, BAD_POSITIONS, my_snake_overlapping)
+            block_pos = move_to_position(my_snake_head, possible_move)
+            temp_hold = grid[block_pos[0]][block_pos[1]]
+            grid[block_pos[0]][block_pos[1]] == 1
+            if my_snake_length <= enough_space(path[-1], my_snake_length, grid, BAD_POSITIONS):
+                if current_path is not None:
+                    if(path_distance(path) < path_distance(current_path)):
+                        current_path = path
+                else:
+                    current_path = path
+            grid[block_pos[0]][block_pos[1]] == temp_hold
+            # end = time.time()
+            # print('Time to fill: ' + str((end - start) * 1000) + 'ms')
+    return current_path
 
 
 def path_to_convenient_food():
@@ -271,7 +306,10 @@ def path_to_tail(my_snake_head, my_snake_tail, waypoints, links, grid):
         path = None
         # print('Looking for tail at ' + str(n) + ' my head at ' + str(my_snake_head))
         if n[0] == my_snake_head[0] and n[1] == my_snake_head[1]:
-            current_path = (my_snake_tail, my_snake_tail)
+            r = []
+            r.append(my_snake_tail)
+            r.append(my_snake_tail)
+            current_path = r
             taunt = 'Just going to eat my tail...'
             break
         if n in BAD_POSITIONS:
@@ -289,7 +327,34 @@ def path_to_tail(my_snake_head, my_snake_tail, waypoints, links, grid):
     return current_path
 
 
-def find_best_move(my_snake_head, my_snake_tail, grid, my_snake_overlapping):
+def path_to_enemy_tail(my_snake_head, snake_id, snakes, waypoints, links, grid):
+    global taunt
+    current_path = None
+    for snake in snakes:
+        if snake_id == snake['id']:
+            continue
+        enemy_tail = point_to_list(snake['body']['data'][-1])
+        tail_neighbours = neighbours(enemy_tail, grid, [])
+        for n in tail_neighbours:
+            path = None
+            # print('Looking for tail at ' + str(n) + ' my head at ' + str(my_snake_head))
+            if n in BAD_POSITIONS:
+                continue
+            path = find_path(my_snake_head, n, waypoints, links, grid, BAD_POSITIONS)
+            if path is not None:
+                # print(str(path))
+                if current_path is not None:
+                    if path_distance(current_path) > path_distance(path):
+                        current_path = path
+                else:
+                    current_path = path
+    if current_path is not None:
+        taunt = 'Nice tail, where ya from?'
+        print('Found path to enemy tail')
+    return current_path
+
+
+def find_best_move(my_snake_head, my_snake_tail, snake_id, snakes, grid, waypoints, links, my_snake_overlapping):
     global taunt
     # TODO: FIND LARGEST PATH OR MOVE TO CENTRE
     # TODO: UPDATE TAIL FOLLOW TO INCLUDE ENEMY TAILS IF I CANT FIND MY OWN TAIL
@@ -298,25 +363,34 @@ def find_best_move(my_snake_head, my_snake_tail, grid, my_snake_overlapping):
     if len(possible_positions) > 0:
         # print('Trying to the best of the worst moves... looking for my tail...')
         for p in possible_positions:
-            if p[0] == my_snake_tail[0] and p[1] == my_snake_tail[1] and not my_snake_overlapping:
+            if p[0] == my_snake_tail[0] and p[1] == my_snake_tail[1] and not my_snake_overlapping and not enemy_near_tail(my_snake_head, my_snake_tail, grid):
                 move = direction(my_snake_head, my_snake_tail)
                 found_tail = True
                 taunt = 'Look at dat tail!'
                 print('Found my tail!')
                 break
     if not found_tail:
-        possible_positions = neighbours(my_snake_head, grid, BAD_POSITIONS)
-        if len(possible_positions) > 0:
-            taunt = 'I love the smell of battle snake in the...'
-            move = direction(my_snake_head, possible_positions[0])
-        else:
-            possible_positions = neighbours(my_snake_head, grid, [1, 2])
+        found_enemy_tail = False
+        path = path_to_enemy_tail(my_snake_head, snake_id, snakes, waypoints, links, grid)
+        if path is not None:
+            if len(path) > 1:
+                found_enemy_tail = True
+                print(path)
+                move = smart_direction(my_snake_head, path[1], grid, BAD_POSITIONS, my_snake_overlapping)
+
+        if not found_enemy_tail:
+            possible_positions = neighbours(my_snake_head, grid, BAD_POSITIONS)
             if len(possible_positions) > 0:
-                taunt = 'I taste bad! Don\'t eat me!'
+                taunt = 'I love the smell of battle snake in the...'
                 move = direction(my_snake_head, possible_positions[0])
             else:
-                move = 'down'
-                taunt = 'That was irrational of you. Not to mention unsportsmanlike.'
+                possible_positions = neighbours(my_snake_head, grid, [1, 2])
+                if len(possible_positions) > 0:
+                    taunt = 'I taste bad! Don\'t eat me!'
+                    move = direction(my_snake_head, possible_positions[0])
+                else:
+                    move = 'down'
+                    taunt = 'That was irrational of you. Not to mention unsportsmanlike.'
     print('No decient moves so moving ' + move)
     return move
 

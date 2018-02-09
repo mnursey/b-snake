@@ -21,7 +21,7 @@ def enough_space(target, target_size, grid, obstacles):
     if grid[target[0]][target[1]] not in obstacles:
         frontier.append(target)
     else:
-        print('early fail')
+        # print('early fail')
         return 0
     # even earlier exist
     while len(frontier) > 0 and len(visited) < target_size:
@@ -32,7 +32,7 @@ def enough_space(target, target_size, grid, obstacles):
             for n in neigh:
                 if n not in visited:
                     frontier.append(n)
-    print('Has room for ' + str(len(visited)))
+    # print('Has room for ' + str(len(visited)))
     return len(visited)
 
 
@@ -161,13 +161,19 @@ def find_path(start, goal, waypoints, links, grid, obstacles):
     return None
 
 
-def generate_waypoints(grid, obstacles, interest_point):
+def generate_waypoints(grid, obstacles, interest_points):
     '''Fix waypoint placement, also include waypoints around the head.
     A few more waypoints would be better than a broken path'''
     waypoints = []
     generated_points = []
     # width = len(grid)
     # height = len(grid[0])
+    for interest_point in interest_points:
+        neigh = neighbours(interest_point, grid, obstacles)
+        for n in neigh:
+            if n not in generated_points:
+                generated_points.append(n)
+                waypoints.append(n)
     for x in range(len(grid)):
         for y in range(len(grid[x])):
             if grid[x][y] in obstacles:
@@ -183,7 +189,7 @@ def generate_waypoints(grid, obstacles, interest_point):
                     if d not in generated_points and add:
                         generated_points.append(d)
                         waypoints.append(d)
-                neigh = neighbours(pos, grid, [1, 2, 4])
+                neigh = neighbours(pos, grid, obstacles)
                 if len(neigh) == 2:
                     if neigh[0][0] != neigh[1][0] and neigh[0][1] != neigh[1][1]:
                         for n in neigh:
@@ -195,13 +201,7 @@ def generate_waypoints(grid, obstacles, interest_point):
                         if n not in generated_points:
                             generated_points.append(n)
                             waypoints.append(n)
-                '''if on_edge_of_grid(pos, grid):
-                    for n in neigh:
-                        if n not in generated_points:
-                            generated_points.append(n)
-                            waypoints.append(n)'''
-                if pos[0] == interest_point[0] and pos[1] == interest_point[1]:
-                    # print('Found interest point!')
+                if on_edge_of_grid(pos, grid):
                     for n in neigh:
                         if n not in generated_points:
                             generated_points.append(n)

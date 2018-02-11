@@ -18,21 +18,25 @@ def direction(a, b):
 def enough_space(target, target_size, grid, obstacles):
     visited = []
     frontier = []
-    if grid[target[0]][target[1]] not in obstacles:
+    # print(str('Target is ' + str(grid[target[0]][target[1]])))
+    frontier.append(target)
+    '''if grid[target[0]][target[1]] not in obstacles:
         frontier.append(target)
     else:
-        # print('early fail')
-        return 0
+        print('early fail ' + str(target))
+        return 0'''
     # even earlier exist
     while len(frontier) > 0 and len(visited) < target_size:
         for f in frontier:
             frontier.remove(f)
-            visited.append(f)
+            if f not in visited:
+                visited.append(f)
             neigh = neighbours(f, grid, obstacles)
             for n in neigh:
                 if n not in visited:
                     frontier.append(n)
-    # print('Has room for ' + str(len(visited)))
+            break
+    # print(str(target) + ' room for ' + str(len(visited)))
     return len(visited)
 
 
@@ -103,6 +107,7 @@ def trace_path(came_from, current):
 def find_path(start, goal, waypoints, links, grid, obstacles):
     start = tuple(start)
     goal = tuple(goal)
+    temp = grid[start[0]][start[1]]
     grid[start[0]][start[1]] = 0
     links[start] = connecting_points(start, waypoints, grid, obstacles)
     connect_points_to(goal, waypoints, links, grid, obstacles)
@@ -123,6 +128,7 @@ def find_path(start, goal, waypoints, links, grid, obstacles):
     f_score[start] = distance(start, goal)
 
     while len(open_set) > 0:
+        # print(open_set)
         # print(len(open_set))
         # fix... adapt for waypoints
         current = open_set[0]
@@ -133,7 +139,7 @@ def find_path(start, goal, waypoints, links, grid, obstacles):
 
         if(current == goal):
             path = trace_path(came_from, current)
-            grid[start[0]][start[1]] = 2
+            grid[start[0]][start[1]] = temp
             for w in waypoints:
                 if goal in links[w]:
                     links[w].remove(goal)
@@ -207,9 +213,9 @@ def generate_waypoints(grid, obstacles, interest_points):
                             generated_points.append(n)
                             waypoints.append(n)
     '''for w in waypoints:
-        grid[w[0]][w[1]] = 'W'
-        # print(w)
-    display_grid(grid)'''
+        # grid[w[0]][w[1]] = 'W'
+        print(w)
+    # display_grid(grid)'''
     return waypoints
 
 
@@ -241,7 +247,7 @@ def link_waypoints(waypoints, grid, obstacles):
             if add:
                 # print(a)
                 # print(b)
-                # print('Connected two waypoints')
+                # print('Connected two waypoints: ' + str(a) + '->' + str(b))
                 results.append(b)
         links[a] = results
 
@@ -275,7 +281,7 @@ def connecting_points(target, waypoints, grid, obstacles):
         if add:
             # print(a)
             # print(b)
-            # print('Connected two waypoints')
+            # print('Connected two waypoints: ' + str(a) + '->' + str(b))
             results.append(b)
 
     return results

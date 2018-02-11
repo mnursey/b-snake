@@ -66,8 +66,8 @@ def generate_grid(snake_id, my_snake_length, data):
 
     # start = time.time()
     possible_dead_end = []
-    for y in range(len(grid)):
-        for x in range(len(grid[y])):
+    for x in range(len(grid)):
+        for y in range(len(grid[x])):
             pos = (x, y)
             if grid[x][y] in GOOD_POSITIONS:
                 neigh = neighbours(pos, grid, BAD_POSITIONS)

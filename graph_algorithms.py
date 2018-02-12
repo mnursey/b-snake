@@ -164,6 +164,7 @@ def find_path(start, goal, waypoints, links, grid, obstacles):
             came_from[n] = current
             g_score[n] = tentative_g_score
             f_score[n] = tentative_g_score + distance(n, goal)
+    grid[start[0]][start[1]] = temp
     return None
 
 
@@ -202,6 +203,11 @@ def generate_waypoints(grid, obstacles, interest_points):
                             if n not in generated_points:
                                 generated_points.append(n)
                                 waypoints.append(n)
+                        dia = get_diagonals(pos, grid, obstacles)
+                        for d in dia:
+                            if d not in generated_points:
+                                generated_points.append(d)
+                                waypoints.append(d)
                 if len(neigh) == 3:
                     for n in neigh:
                         if n not in generated_points:
@@ -213,9 +219,9 @@ def generate_waypoints(grid, obstacles, interest_points):
                             generated_points.append(n)
                             waypoints.append(n)
     '''for w in waypoints:
-        # grid[w[0]][w[1]] = 'W'
-        print(w)
-    # display_grid(grid)'''
+        grid[w[0]][w[1]] = 'W'
+        # print(w)
+    display_grid(grid)'''
     return waypoints
 
 

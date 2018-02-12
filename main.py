@@ -192,6 +192,22 @@ def get_snake_tails(data):
     return tails
 
 
+def should_get_longer(my_snake_id, my_snake_length, snakes):
+    min_length = 10000
+    max_length = 0
+
+    for s in snakes:
+        s_length = s['length']
+        if s_length < min_length:
+            min_length = s_length
+        if s_length > max_length:
+            max_length = s_length
+    if my_snake_length < ((min_length + max_length) / 2) + 1:
+        print('Time to get longer')
+        return True
+    return False
+
+
 def run_ai(data):
     # Important Info:
     global taunt
@@ -231,9 +247,10 @@ def run_ai(data):
     # display_grid(grid)
     current_path = None
 
-    if my_snake_health < 50 or my_snake_length < 12:
-        current_path = path_to_safe_food(my_snake_head, my_snake_length, snake_id, goals, snakes, waypoints, links, grid, my_snake_overlapping)
-    elif my_snake_health < 20:
+    if 20 < my_snake_health:
+        if my_snake_health < 50 or should_get_longer(snake_id, my_snake_length, snakes):
+            current_path = path_to_safe_food(my_snake_head, my_snake_length, snake_id, goals, snakes, waypoints, links, grid, my_snake_overlapping)
+    elif my_snake_health <= 20:
         current_path = path_to_desperation_food(my_snake_head, my_snake_length, snake_id, goals, waypoints, links, grid, my_snake_overlapping)
     if current_path is not None:
         '''print('Printing path')
@@ -263,8 +280,7 @@ def run_ai(data):
             can_bully_enemy = False
         if not can_bully_enemy:
             # follow tail
-            if not enemy_near_tail(my_snake_head, my_snake_tail, grid):
-                current_path = path_to_tail(my_snake_head, my_snake_tail, waypoints, links, grid)
+            current_path = path_to_tail(my_snake_head, my_snake_tail, waypoints, links, grid)
             if current_path is not None:
                 if len(current_path) > 1:
                     # print('overlapping:' + str(my_snake_overlapping))
@@ -292,6 +308,9 @@ def path_to_safe_food(my_snake_head, my_snake_length, snake_id, goals, snakes, w
             if distance(my_snake_head, goal) > path_distance(current_path):
                 continue
         easy = True
+        for n in neighbours(goal, grid, PATH_FINDING_OBSTACLES):
+            if n is DEAD_END:
+                easy = False
         for snake in snakes:
             if(snake['id'] != snake_id):
                 enemy_dist = distance(point_to_list(snake['body']['data'][0]), goal)
@@ -327,7 +346,7 @@ def path_to_safe_food(my_snake_head, my_snake_length, snake_id, goals, snakes, w
 
 
 def path_to_desperation_food(my_snake_head, my_snake_length, snake_id, goals, waypoints, links, grid, my_snake_overlapping):
-    display_grid(grid)
+    # display_grid(grid)
     current_path = None
     for goal in goals:
         if current_path is not None:
@@ -363,6 +382,8 @@ def path_to_tail(my_snake_head, my_snake_tail, waypoints, links, grid):
     global taunt
     current_path = None
     tail_neighbours = neighbours(my_snake_tail, grid, [])
+    if enemy_near_tail(my_snake_head, my_snake_tail, grid) and distance(my_snake_head, my_snake_tail) <= 2:
+        return None
     for n in tail_neighbours:
         path = None
         # print('Looking for tail at ' + str(n) + ' my head at ' + str(my_snake_head))

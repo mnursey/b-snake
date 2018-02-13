@@ -15,6 +15,31 @@ def direction(a, b):
         return 'down'
 
 
+def flood_fill(target, grid, obstacles):
+    visited = []
+    frontier = []
+    # print(str('Target is ' + str(grid[target[0]][target[1]])))
+    frontier.append(target)
+    '''if grid[target[0]][target[1]] not in obstacles:
+        frontier.append(target)
+    else:
+        print('early fail ' + str(target))
+        return 0'''
+    # even earlier exist
+    while len(frontier) > 0:
+        for f in frontier:
+            frontier.remove(f)
+            if f not in visited:
+                visited.append(f)
+            neigh = neighbours(f, grid, obstacles)
+            for n in neigh:
+                if n not in visited and n not in frontier:
+                    frontier.append(n)
+            break
+    # print(str(target) + ' room for ' + str(len(visited)))
+    return visited
+
+
 def enough_space(target, target_size, grid, obstacles):
     visited = []
     frontier = []
@@ -33,8 +58,8 @@ def enough_space(target, target_size, grid, obstacles):
                 visited.append(f)
             neigh = neighbours(f, grid, obstacles)
             for n in neigh:
-                if n not in visited:
-                    frontier.append(n)
+                if n not in visited and n not in frontier:
+                        frontier.append(n)
             break
     # print(str(target) + ' room for ' + str(len(visited)))
     return len(visited)

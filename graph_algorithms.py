@@ -130,8 +130,10 @@ def trace_path(came_from, current):
 
 
 def find_path(start, goal, waypoints, links, grid, obstacles):
-    start = tuple(start)
-    goal = tuple(goal)
+    if type(start) is not tuple:
+        start = tuple(start)
+    if type(goal) is not tuple:
+        goal = tuple(goal)
     temp = grid[start[0]][start[1]]
     grid[start[0]][start[1]] = 0
     links[start] = connecting_points(start, waypoints, grid, obstacles)
@@ -156,11 +158,13 @@ def find_path(start, goal, waypoints, links, grid, obstacles):
         # print(open_set)
         # print(len(open_set))
         # fix... adapt for waypoints
-        current = open_set[0]
+        current = None
         for w in open_set:
             # print(w)
+            if current is None:
+                current = w
             if(f_score[w] < f_score[current]):
-                w = current
+                current = w
 
         if(current == goal):
             path = trace_path(came_from, current)
@@ -190,6 +194,9 @@ def find_path(start, goal, waypoints, links, grid, obstacles):
             g_score[n] = tentative_g_score
             f_score[n] = tentative_g_score + distance(n, goal)
     grid[start[0]][start[1]] = temp
+    for w in waypoints:
+        if goal in links[w]:
+            links[w].remove(goal)
     return None
 
 

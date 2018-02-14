@@ -527,6 +527,17 @@ def path_to_bully_enemy(my_snake_head, my_snake_length, snake_id, goals, snakes,
             # print('Looking for tail at ' + str(n) + ' my head at ' + str(my_snake_head))
             if n in DEATH_POSITIONS:
                 continue
+            # Check if another enemy is closer
+            '''easy = True
+            for s in snakes:
+                if(not s['id'] == snake_id and not s['id'] == snake['id']):
+                    enemy_dist = distance(enemy_head, n)
+                    if enemy_dist <= distance(my_snake_head, n):
+                        easy = False
+                        break
+            if not easy:
+                # print('another enemy closer')
+                continue'''
             path = find_path(my_snake_head, n, waypoints, links, grid, DEATH_POSITIONS)
 
             if path is not None:
@@ -543,17 +554,7 @@ def path_to_bully_enemy(my_snake_head, my_snake_length, snake_id, goals, snakes,
                     else:
                         current_path = result
                         continue'''
-                # Check if another enemy is closer
-                easy = True
-                for s in snakes:
-                    if(not s['id'] == snake_id and not s['id'] == snake['id']):
-                        enemy_dist = distance(point_to_list(s['body']['data'][0]), n)
-                        if enemy_dist <= path_distance(path):
-                            easy = False
-                            break
-                if not easy:
-                    # print('another enemy closer')
-                    continue
+
                 # Check if move would lead to snake getting trapped
                 space_before_move = enough_space(enemy_head, snake['length'], grid, DEATH_POSITIONS)
 

@@ -232,7 +232,6 @@ def run_ai(data):
     goals = objectives(data)
     my_snake_length = data['you']['length']
     my_snake_health = data['you']['health']
-    # TODO Update for all body not just starting body
     my_snake_overlapping = is_body_overlapping(data['you']['body']['data'])
 
     grid = generate_grid(snake_id, my_snake_length, data)
@@ -321,6 +320,7 @@ def run_ai(data):
 
 
 def path_to_safe_food(my_snake_head, my_snake_length, snake_id, goals, snakes, waypoints, links, grid, my_snake_overlapping):
+    global taunt
     current_path = None
     for goal in goals:
         if current_path is not None:
@@ -361,11 +361,14 @@ def path_to_safe_food(my_snake_head, my_snake_length, snake_id, goals, snakes, w
             # display_grid(grid)
             # end = time.time()
             # print('Time to fill: ' + str((end - start) * 1000) + 'ms')
+    if current_path is not None:
+        taunt = 'Safe food'
     return current_path
 
 
 def path_to_desperation_food(my_snake_head, my_snake_length, snake_id, goals, waypoints, links, grid, my_snake_overlapping):
     # display_grid(grid)
+    global taunt
     current_path = None
     for goal in goals:
         if current_path is not None:
@@ -390,6 +393,7 @@ def path_to_desperation_food(my_snake_head, my_snake_length, snake_id, goals, wa
             grid[block_pos[0]][block_pos[1]] = temp_hold
         # end = time.time()
         # print('Time to fill: ' + str((end - start) * 1000) + 'ms')
+    taunt = 'Desperation food'
     return current_path
 
 
@@ -421,10 +425,9 @@ def path_to_tail(my_snake_head, my_snake_tail, waypoints, links, grid):
                     current_path = path
             else:
                 current_path = path
-    '''if current_path is not None:
-        print('Found path to tail')
-    else:
-        print('Could not find path to tail')'''
+    if current_path is not None:
+        taunt = 'Following my tail'
+
     return current_path
 
 
@@ -450,7 +453,7 @@ def path_to_enemy_tail(my_snake_head, snake_id, snakes, waypoints, links, grid):
                 else:
                     current_path = path
     if current_path is not None:
-        taunt = 'Nice tail, where ya from?'
+        taunt = 'Following Enemy Tail'
         '''print('Found path to enemy tail')'''
     return current_path
 
@@ -495,7 +498,7 @@ def path_to_snake_body(my_snake_head, my_snake_id, snakes, waypoints, links, gri
         snake['body']['data'].reverse()
 
     if current_path is not None:
-        taunt = 'Where ya going?'
+        taunt = 'Following Anybody'
         '''print('Found path to snake body:' + str(current_path[-1]) + ' ' + str(path_distance(current_path)))
     else:
         print('Could not find path to any body of any snake')'''
@@ -566,7 +569,7 @@ def path_to_bully_enemy(my_snake_head, my_snake_length, snake_id, goals, snakes,
 
                 space_after_move = enough_space(enemy_head, snake['length'], grid, DEATH_POSITIONS)
                 if space_after_move < snake['length'] and space_before_move >= snake['length']:
-                    taunt = 'Say goodbye!'
+                    taunt = 'Killing'
                     print('Moving in to kill enemy')
                     for pos in blocked_positions:
                         grid[pos[0][0]][pos[0][1]] = pos[1]
@@ -594,7 +597,7 @@ def path_to_bully_enemy(my_snake_head, my_snake_length, snake_id, goals, snakes,
                     grid[pos[0][0]][pos[0][1]] = pos[1]
 
     if current_path is not None:
-        taunt = 'I\'m coming for you!'
+        taunt = 'Attacking'
         # print('Found path to bully enemy')
     return current_path
 
@@ -658,7 +661,7 @@ def move():
     global taunt
     data = bottle.request.json
     # print(str(data))
-    taunt = 'Lil B Big Snake'
+    taunt = 'Make money sell money'
     start = time.time()
     output = run_ai(data)
     end = time.time()

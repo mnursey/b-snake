@@ -511,7 +511,7 @@ def path_to_bully_enemy(my_snake_head, my_snake_length, snake_id, goals, snakes,
             continue
 
         enemy_head = point_to_list(snake['body']['data'][0])
-        if my_snake_length < snake['length']:
+        if my_snake_length > snake['length']:
             head_neighbours = neighbours(enemy_head, grid, [])
         else:
             head_neighbours = []
@@ -528,16 +528,17 @@ def path_to_bully_enemy(my_snake_head, my_snake_length, snake_id, goals, snakes,
 
             if path is not None:
                 if len(path) < 2:
+                    continue
                     result = []
-                    result.append(n)
-                    result.append(n)
-                    print('Moving in the kill enemy')
+                    result.append((n[0], n[1]))
+                    result.append((n[0], n[1]))
+                    print('Moving in to the kill enemy')
                     if current_path is not None:
-                        if(path_distance(path) < path_distance(current_path)):
-                            current_path = path
+                        if(path_distance(result) < path_distance(current_path)):
+                            current_path = result
                             continue
                     else:
-                        current_path = path
+                        current_path = result
                         continue
                 # Check if another enemy is closer
                 '''easy = True

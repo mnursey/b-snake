@@ -541,7 +541,7 @@ def path_to_bully_enemy(my_snake_head, my_snake_length, snake_id, goals, snakes,
                         current_path = result
                         continue
                 # Check if another enemy is closer
-                '''easy = True
+                easy = True
                 for s in snakes:
                     if(not s['id'] == snake_id and not s['id'] == snake['id']):
                         enemy_dist = distance(point_to_list(s['body']['data'][0]), n)
@@ -550,7 +550,7 @@ def path_to_bully_enemy(my_snake_head, my_snake_length, snake_id, goals, snakes,
                             break
                 if not easy:
                     # print('another enemy closer')
-                    continue'''
+                    continue
                 # Check if move would lead to snake getting trapped
                 possible_move = smart_direction(my_snake_head, path[1], grid, DEATH_POSITIONS, my_snake_overlapping)
                 block_pos = move_to_position(my_snake_head, possible_move)

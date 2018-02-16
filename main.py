@@ -120,11 +120,12 @@ def get_forward_node(head, neck, grid):
 
 def smart_attack_move(my_head, b, enemy_head, grid, obstacles, overlapping):
     raw_move = direction(my_head, b)
+
     if(move_to_position(my_head, raw_move)[0] == b[0] and move_to_position(my_head, raw_move)[1] == b[1] and not overlapping):
         return raw_move
 
     possible_moves = []
-    if(my_head[0] > my_head[0] and grid[my_head[0] - 1][my_head[1]] not in obstacles):
+    if(my_head[0] > b[0] and grid[my_head[0] - 1][my_head[1]] not in obstacles):
         possible_moves.append('left')
     if(my_head[0] < b[0] and grid[my_head[0] + 1][my_head[1]] not in obstacles):
         possible_moves.append('right')
@@ -132,6 +133,7 @@ def smart_attack_move(my_head, b, enemy_head, grid, obstacles, overlapping):
         possible_moves.append('up')
     if(my_head[1] < b[1] and grid[my_head[0]][my_head[1] + 1] not in obstacles):
         possible_moves.append('down')
+
     if len(possible_moves) == 1:
         return possible_moves[0]
 

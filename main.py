@@ -322,7 +322,7 @@ def run_ai(data):
             current_path = bully_info[0]
         if current_path is not None:
             if len(current_path) > 1:
-                possible_move = smart_attack_move(my_snake_head, current_path[1], bully_info[1], grid, PATH_FINDING_OBSTACLES, my_snake_overlapping)
+                possible_move = smart_direction(my_snake_head, current_path[1], grid, PATH_FINDING_OBSTACLES, my_snake_overlapping)
                 if possible_move is not None:
                     move = possible_move
                     print('Going to bully enemy at ' + str(current_path[-1]) + ' by going ' + str(move))

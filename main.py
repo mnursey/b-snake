@@ -118,6 +118,39 @@ def get_forward_node(head, neck, grid):
     return None
 
 
+def smart_attack_move(my_head, b, enemy_head, grid, obstacles, overlapping):
+    raw_move = direction(my_head, b)
+    if(move_to_position(my_head, raw_move)[0] == b[0] and move_to_position(my_head, raw_move)[1] == b[1] and not overlapping):
+        return raw_move
+
+    possible_moves = []
+    if(my_head[0] > my_head[0] and grid[my_head[0] - 1][my_head[1]] not in obstacles):
+        possible_moves.append('left')
+    if(my_head[0] < b[0] and grid[my_head[0] + 1][my_head[1]] not in obstacles):
+        possible_moves.append('right')
+    if(my_head[1] > b[1] and grid[my_head[0]][my_head[1] - 1] not in obstacles):
+        possible_moves.append('up')
+    if(my_head[1] < b[1] and grid[my_head[0]][my_head[1] + 1] not in obstacles):
+        possible_moves.append('down')
+    if len(possible_moves) == 1:
+        return possible_moves[0]
+
+    if 'left' in possible_moves:
+        if distance(my_head, b) < distance(enemy_head, b) and my_head[0] > enemy_head[0]:
+            return 'left'
+    if 'right' in possible_moves:
+        if distance(my_head, b) < distance(enemy_head, b) and my_head[0] < enemy_head[0]:
+            return 'right'
+    if 'up' in possible_moves:
+        if distance(my_head, b) < distance(enemy_head, b) and my_head[1] > enemy_head[1]:
+            return 'up'
+    if 'down' in possible_moves:
+        if distance(my_head, b) < distance(enemy_head, b) and my_head[1] < enemy_head[1]:
+            return 'down'
+
+    return smart_direction(my_head, b, grid, obstacles, overlapping)
+
+
 def smart_direction(a, b, grid, obstacles, overlapping):
     raw_move = direction(a, b)
     if(move_to_position(a, raw_move)[0] == b[0] and move_to_position(a, raw_move)[1] == b[1] and not overlapping):
@@ -273,10 +306,23 @@ def run_ai(data):
                 print('Going to food at ' + str(current_path[-1]) + ' by going ' + str(move))
 
     if move is None:
-        current_path = path_to_bully_enemy(my_snake_head, my_snake_length, snake_id, goals, snakes, waypoints, links, grid, my_snake_overlapping)
+        corner_info = corner_enemy(my_snake_head, my_snake_length, snake_id, snakes, waypoints, links, grid)
+        if corner_info is not None:
+            current_path = corner_info[0]
         if current_path is not None:
             if len(current_path) > 1:
-                possible_move = smart_direction(my_snake_head, current_path[1], grid, PATH_FINDING_OBSTACLES, my_snake_overlapping)
+                possible_move = smart_attack_move(my_snake_head, current_path[1], corner_info[1], grid, PATH_FINDING_OBSTACLES, my_snake_overlapping)
+                if possible_move is not None:
+                    move = possible_move
+                    print('Going to corner enemy at ' + str(current_path[-1]) + ' by going ' + str(move))
+
+    if move is None:
+        bully_info = path_to_bully_enemy(my_snake_head, my_snake_length, snake_id, goals, snakes, waypoints, links, grid, my_snake_overlapping)
+        if bully_info is not None:
+            current_path = bully_info[0]
+        if current_path is not None:
+            if len(current_path) > 1:
+                possible_move = smart_attack_move(my_snake_head, current_path[1], bully_info[1], grid, PATH_FINDING_OBSTACLES, my_snake_overlapping)
                 if possible_move is not None:
                     move = possible_move
                     print('Going to bully enemy at ' + str(current_path[-1]) + ' by going ' + str(move))
@@ -514,9 +560,72 @@ def path_to_snake_body(my_snake_head, my_snake_id, snakes, waypoints, links, gri
     return current_path
 
 
+def corner_enemy(my_snake_head, my_snake_length, my_snake_id, snakes, waypoints, links, grid):
+    global taunt
+    current_path = None
+    target_snake_head = None
+    for snake in snakes:
+        if my_snake_id == snake['id']:
+            continue
+
+        enemy_head = point_to_list(snake['body']['data'][0])
+
+        enemy_head_neighbours = neighbours(enemy_head, grid, DEATH_POSITIONS)
+        if len(enemy_head_neighbours) != 1:
+            continue
+
+        search_node = enemy_head_neighbours[0]
+        search_node_neighbours = neighbours(enemy_head, grid, DEATH_POSITIONS)
+        visted = []
+        while len(search_node_neighbours) == 1:
+            visted.append(search_node)
+            search_node = search_node_neighbours[0]
+            new_neigh = neighbours(search_node, grid, DEATH_POSITIONS)
+
+            for v in visted:
+                if v in new_neigh:
+                    new_neigh.remove(v)
+            search_node_neighbours = new_neigh
+
+        exit_point = search_node
+        if len(search_node_neighbours) == 0:
+            continue
+        # print('Exit point: ' + str(exit_point))
+        my_path = find_path(my_snake_head, exit_point, waypoints, links, grid, DEATH_POSITIONS)
+        enemy_path = find_path(enemy_head, exit_point, waypoints, links, grid, DEATH_POSITIONS)
+
+        if my_path is None:
+            continue
+
+        if enemy_path is None:
+            enemy_dist = distance(enemy_head, exit_point)
+        else:
+            enemy_dist = path_distance(enemy_path)
+
+        larger_and_close = False
+        if(path_distance(my_path) <= enemy_dist and my_snake_length > snake['length']):
+            larger_and_close = True
+
+        if(path_distance(my_path) < enemy_dist or larger_and_close):
+            if current_path is not None:
+                if(path_distance(my_path) < path_distance(current_path)):
+                    current_path = my_path
+                    target_snake_head = enemy_head
+            else:
+                current_path = my_path
+                target_snake_head = enemy_head
+
+    if current_path is not None:
+        taunt = 'Cornering'
+    else:
+        return None
+    return (current_path, target_snake_head)
+
+
 def path_to_bully_enemy(my_snake_head, my_snake_length, snake_id, goals, snakes, waypoints, links, grid, my_snake_overlapping):
     global taunt
     current_path = None
+    target_snake_head = None
     for snake in snakes:
         if snake_id == snake['id']:
             continue
@@ -528,7 +637,10 @@ def path_to_bully_enemy(my_snake_head, my_snake_length, snake_id, goals, snakes,
             head_neighbours = []
         forward = get_forward_node(enemy_head, point_to_list(snake['body']['data'][1]), grid)
         if forward is not None:
-            head_neighbours.append(forward)
+            move_dir = direction(enemy_head, forward)
+            pos = move_to_position(enemy_head, move_dir)
+            if grid[pos[0]][pos[1]] not in DEATH_POSITIONS:
+                head_neighbours.append(forward)
 
         for n in head_neighbours:
             path = None
@@ -564,8 +676,6 @@ def path_to_bully_enemy(my_snake_head, my_snake_length, snake_id, goals, snakes,
                         continue'''
 
                 # Check if move would lead to snake getting trapped
-                space_before_move = enough_space(enemy_head, snake['length'], grid, DEATH_POSITIONS)
-
                 possible_move = smart_direction(my_snake_head, path[1], grid, DEATH_POSITIONS, my_snake_overlapping)
                 blocked_positions = []
                 block_pos = move_to_position(my_snake_head, possible_move)
@@ -575,14 +685,6 @@ def path_to_bully_enemy(my_snake_head, my_snake_length, snake_id, goals, snakes,
                 # Code to reset grid:
                 '''for pos in blocked_positions:
                     grid[pos[0][0]][pos[0][1]] = pos[1]'''
-
-                space_after_move = enough_space(enemy_head, snake['length'], grid, DEATH_POSITIONS)
-                if space_after_move < snake['length'] and space_before_move >= snake['length']:
-                    taunt = 'Killing'
-                    print('Moving in to kill enemy')
-                    for pos in blocked_positions:
-                        grid[pos[0][0]][pos[0][1]] = pos[1]
-                    return path
 
                 # Check if the enemy is in a position to block me off
                 for n in neighbours(enemy_head, grid, DEATH_POSITIONS):
@@ -600,15 +702,17 @@ def path_to_bully_enemy(my_snake_head, my_snake_length, snake_id, goals, snakes,
                     if current_path is not None:
                         if(path_distance(path) < path_distance(current_path)):
                             current_path = path
+                            target_snake_head = enemy_head
                     else:
                         current_path = path
+                        target_snake_head = enemy_head
                 for pos in blocked_positions:
                     grid[pos[0][0]][pos[0][1]] = pos[1]
-
     if current_path is not None:
         taunt = 'Attacking'
-        # print('Found path to bully enemy')
-    return current_path
+    else:
+        return None
+    return (current_path, target_snake_head)
 
 
 def find_best_move(my_snake_head, my_snake_tail, snake_id, snakes, grid, waypoints, links, my_snake_overlapping):
@@ -625,7 +729,7 @@ def find_best_move(my_snake_head, my_snake_tail, snake_id, snakes, grid, waypoin
                 move = move = direction(my_snake_head, n)
                 size = s
     else:
-        possible_positions = neighbours(my_snake_head, grid, DEATH_POSITIONS)
+        possible_positions = neighbours(my_snake_head, grid, PATH_FINDING_OBSTACLES)
         if len(possible_positions) > 0:
             taunt = 'I taste bad! Don\'t eat me!'
             size = None
@@ -638,9 +742,37 @@ def find_best_move(my_snake_head, my_snake_tail, snake_id, snakes, grid, waypoin
                     size = s
             print('Desperation move:' + str(move))
         else:
-            move = 'down'
-            taunt = 'That was irrational of you. Not to mention unsportsmanlike.'
-            print('No where to go!!!')
+            obstacles = PATH_FINDING_OBSTACLES[:]
+            obstacles.remove(DANGER)
+            possible_positions = neighbours(my_snake_head, grid, obstacles)
+            if len(possible_positions) > 0:
+                taunt = 'Is this the end?'
+                size = None
+                for n in possible_positions:
+                    s = enough_space(n, 100, grid, DEATH_POSITIONS)
+                    if size is None:
+                        size = s
+                    if size <= s:
+                        move = move = direction(my_snake_head, n)
+                        size = s
+                print('Desperation move:' + str(move))
+            else:
+                possible_positions = neighbours(my_snake_head, grid, DEATH_POSITIONS)
+                if len(possible_positions) > 0:
+                    taunt = 'I\'m too young to die!'
+                    size = None
+                    for n in possible_positions:
+                        s = enough_space(n, 100, grid, DEATH_POSITIONS)
+                        if size is None:
+                            size = s
+                        if size <= s:
+                            move = move = direction(my_snake_head, n)
+                            size = s
+                    print('Desperation move:' + str(move))
+                else:
+                    move = 'down'
+                    taunt = 'That was irrational of you. Not to mention unsportsmanlike.'
+                    print('No where to go!!!')
     return move
 
 

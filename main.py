@@ -318,7 +318,7 @@ def run_ai(data):
                     move = possible_move
                     print('Going to corner enemy at ' + str(current_path[-1]) + ' by going ' + str(move))
 
-    if move is None:
+    '''if move is None:
         bully_info = path_to_bully_enemy(my_snake_head, my_snake_length, snake_id, goals, snakes, waypoints, links, grid, my_snake_overlapping)
         if bully_info is not None:
             current_path = bully_info[0]
@@ -327,7 +327,7 @@ def run_ai(data):
                 possible_move = smart_direction(my_snake_head, current_path[1], grid, PATH_FINDING_OBSTACLES, my_snake_overlapping)
                 if possible_move is not None:
                     move = possible_move
-                    print('Going to bully enemy at ' + str(current_path[-1]) + ' by going ' + str(move))
+                    print('Going to bully enemy at ' + str(current_path[-1]) + ' by going ' + str(move))'''
 
     if move is None:
         if not (enemy_near_tail(my_snake_head, my_snake_tail, grid) and distance(my_snake_head, my_snake_tail) <= 3):

@@ -277,10 +277,11 @@ def add_bad_moves_to_grid(my_snake_head, my_snake_id, snakes, grid):
         if f in enemy_moves:
             bad_moves.append(h)
 
-    for b in bad_moves:
-        if grid[b[0]][b[1]] not in PATH_FINDING_OBSTACLES:
-            grid[b[0]][b[1]] = DANGER
-            print('Added ' + str(b) + ' as DANGER')
+    if len(bad_moves) != len(my_head_neighbours):
+        for b in bad_moves:
+            if grid[b[0]][b[1]] not in PATH_FINDING_OBSTACLES:
+                grid[b[0]][b[1]] = DANGER
+                print('Added ' + str(b) + ' as DANGER')
 
 
 def run_ai(data):

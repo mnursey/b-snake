@@ -259,29 +259,57 @@ def should_get_longer(my_snake_id, my_snake_length, snakes):
 
 
 def add_bad_moves_to_grid(my_snake_head, my_snake_id, snakes, grid):
-    # TODO check logic
+    print('my head is at ' + str(my_snake_head))
     my_head_neighbours = neighbours(my_snake_head, grid, PATH_FINDING_OBSTACLES)
     enemy_moves = []
 
     for enemy in snakes:
         if enemy['id'] == my_snake_id:
             continue
-        neigh = neighbours(point_to_list(enemy['body']['data'][0]), grid, PATH_FINDING_OBSTACLES)
+        neigh = neighbours(point_to_list(enemy['body']['data'][0]), grid, DEATH_POSITIONS)
         for n in neigh:
             if n not in enemy_moves:
                 enemy_moves.append(n)
 
     bad_moves = []
+
+    enemy_future_moves = []
+    for enemy_move in enemy_moves:
+        future_moves = neighbours(enemy_move, grid, DEATH_POSITIONS)
+        for future_move in future_moves:
+            if future_move not in enemy_future_moves:
+                enemy_future_moves.append(future_move)
+
+    # Check if move would put me in a position of chance
+    for my_head_neighbour in my_head_neighbours:
+        counter = 0
+        skip = 0
+        future_neighbours = neighbours(my_head_neighbour, grid, DEATH_POSITIONS)
+        for future_neigh in future_neighbours:
+            if future_neigh in my_head_neighbour:
+                skip += 1
+                print('SKIPPED!!!!')
+                continue
+            for enemy_future_move in enemy_future_moves:
+                if future_neigh[0] == enemy_future_move[0] and future_neigh[1] == enemy_future_move[1]:
+                    counter += 1
+
+        if counter >= len(future_neighbours) - skip:
+            if my_head_neighbour not in bad_moves:
+                bad_moves.append(my_head_neighbour)
+                print('Removed Chance move')
+    # Check if move would put me in a position to be attacked
     for h in my_head_neighbours:
         f = get_forward_node(h, my_snake_head, grid)
         if f in enemy_moves:
-            bad_moves.append(h)
+            if h not in bad_moves:
+                bad_moves.append(h)
+                print('Removed Vulnerable move')
 
     if len(bad_moves) != len(my_head_neighbours):
         for b in bad_moves:
             if grid[b[0]][b[1]] not in PATH_FINDING_OBSTACLES:
                 grid[b[0]][b[1]] = DANGER
-                print('Added ' + str(b) + ' as DANGER')
 
 
 def run_ai(data):
@@ -769,6 +797,7 @@ def find_best_move(my_snake_head, my_snake_tail, snake_id, snakes, grid, waypoin
             if size is None:
                 size = s
             if size <= s:
+                print('Moving to position with space')
                 move = move = direction(my_snake_head, n)
                 size = s
     else:

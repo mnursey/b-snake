@@ -21,14 +21,15 @@ taunt = 'Make money sell money'
 
 
 def point_to_list(json_object):
+    return json_object
     return (json_object['x'], json_object['y'])
 
 
 def objectives(data):
     results = []
-    food = data['food']['data']
+    food = data['board']['food']
     for f in food:
-        results.append(point_to_list(f))
+        results.append(point_to_list((f['x'],f['y'])))
     return results
 
 
@@ -42,28 +43,28 @@ def display_grid(grid):
 
 
 def generate_grid(snake_id, my_snake_length, data):
-    grid = [[0 for col in range(data['height'])] for row in range(data['width'])]
+    grid = [[0 for col in range(data['board']['height'])] for row in range(data['board']['width'])]
 
-    for food in data['food']['data']:
+    for food in data['board']['food']:
         food = point_to_list(food)
-        grid[food[0]][food[1]] = FOOD
+        grid[food['x']][food['y']] = FOOD
 
-    for snake in data['snakes']['data']:
-        for coord in snake['body']['data']:
+    for snake in data['board']['snakes']:
+        for coord in snake['body']:
             coord = point_to_list(coord)
             # Add in once accounting for eating an apple
             # if coord != snake['coords'][-1]:
-            grid[coord[0]][coord[1]] = SNAKE
+            grid[coord['x']][coord['y']] = SNAKE
 
         if snake_id != snake['id']:
-            if my_snake_length <= snake['length']:
-                danger_spots = neighbours(point_to_list(snake['body']['data'][0]), grid, PATH_FINDING_OBSTACLES)
+            if my_snake_length <= len(snake['body']):
+                danger_spots = neighbours(point_to_list((snake['body'][0]['x'],snake['body'][0]['y'])), grid, PATH_FINDING_OBSTACLES)
                 for n in danger_spots:
                     grid[n[0]][n[1]] = DANGER
-        snake_head = point_to_list(snake['body']['data'][-1])
-        grid[snake_head[0]][snake_head[1]] = SNAKE_TAIL
-        snake_head = point_to_list(snake['body']['data'][0])
-        grid[snake_head[0]][snake_head[1]] = SNAKE_HEAD
+        snake_head = point_to_list(snake['body'][-1])
+        grid[snake_head['x']][snake_head['y']] = SNAKE_TAIL
+        snake_head = point_to_list(snake['body'][0])
+        grid[snake_head['x']][snake_head['y']] = SNAKE_HEAD
 
     # start = time.time()
     possible_dead_end = []
@@ -236,8 +237,8 @@ def enemy_near_tail(my_head, tail, grid):
 
 def get_snake_tails(data):
     tails = []
-    for snake in data['snakes']['data']:
-        snake_tail = point_to_list(snake['body']['data'][-1])
+    for snake in data['board']['snakes']:
+        snake_tail = point_to_list((snake['body'][-1]['x'],snake['body'][-1]['y']))
         tails.append(snake_tail)
     return tails
 
@@ -247,7 +248,7 @@ def should_get_longer(my_snake_id, my_snake_length, snakes):
     max_length = 0
 
     for s in snakes:
-        s_length = s['length']
+        s_length = len(s['body'])
         if s_length < min_length:
             min_length = s_length
         if s_length > max_length:
@@ -259,57 +260,29 @@ def should_get_longer(my_snake_id, my_snake_length, snakes):
 
 
 def add_bad_moves_to_grid(my_snake_head, my_snake_id, snakes, grid):
-    print('my head is at ' + str(my_snake_head))
+    # TODO check logic
     my_head_neighbours = neighbours(my_snake_head, grid, PATH_FINDING_OBSTACLES)
     enemy_moves = []
 
     for enemy in snakes:
         if enemy['id'] == my_snake_id:
             continue
-        neigh = neighbours(point_to_list(enemy['body']['data'][0]), grid, DEATH_POSITIONS)
+        neigh = neighbours(point_to_list((enemy['body'][0]['x'],enemy['body'][0]['y'])), grid, PATH_FINDING_OBSTACLES)
         for n in neigh:
             if n not in enemy_moves:
                 enemy_moves.append(n)
 
     bad_moves = []
-
-    enemy_future_moves = []
-    for enemy_move in enemy_moves:
-        future_moves = neighbours(enemy_move, grid, DEATH_POSITIONS)
-        for future_move in future_moves:
-            if future_move not in enemy_future_moves:
-                enemy_future_moves.append(future_move)
-
-    # Check if move would put me in a position of chance
-    for my_head_neighbour in my_head_neighbours:
-        counter = 0
-        skip = 0
-        future_neighbours = neighbours(my_head_neighbour, grid, DEATH_POSITIONS)
-        for future_neigh in future_neighbours:
-            if future_neigh in my_head_neighbour:
-                skip += 1
-                print('SKIPPED!!!!')
-                continue
-            for enemy_future_move in enemy_future_moves:
-                if future_neigh[0] == enemy_future_move[0] and future_neigh[1] == enemy_future_move[1]:
-                    counter += 1
-
-        if counter >= len(future_neighbours) - skip:
-            if my_head_neighbour not in bad_moves:
-                bad_moves.append(my_head_neighbour)
-                print('Removed Chance move')
-    # Check if move would put me in a position to be attacked
     for h in my_head_neighbours:
         f = get_forward_node(h, my_snake_head, grid)
         if f in enemy_moves:
-            if h not in bad_moves:
-                bad_moves.append(h)
-                print('Removed Vulnerable move')
+            bad_moves.append(h)
 
     if len(bad_moves) != len(my_head_neighbours):
         for b in bad_moves:
             if grid[b[0]][b[1]] not in PATH_FINDING_OBSTACLES:
                 grid[b[0]][b[1]] = DANGER
+                print('Added ' + str(b) + ' as DANGER')
 
 
 def run_ai(data):
@@ -320,14 +293,14 @@ def run_ai(data):
 
     snake_id = data['you']['id']
     goals = objectives(data)
-    my_snake_length = data['you']['length']
+    my_snake_length = len(data['you']['body'])
     my_snake_health = data['you']['health']
-    my_snake_overlapping = is_body_overlapping(data['you']['body']['data'])
+    my_snake_overlapping = is_body_overlapping(data['you']['body'])
 
     grid = generate_grid(snake_id, my_snake_length, data)
-    my_snake_head = point_to_list(data['you']['body']['data'][0])
-    my_snake_tail = point_to_list(data['you']['body']['data'][-1])
-    snakes = data['snakes']['data']
+    my_snake_head = point_to_list((data['you']['body'][0]['x'], data['you']['body'][0]['y']))
+    my_snake_tail = point_to_list((data['you']['body'][-1]['x'],data['you']['body'][-1]['y']))
+    snakes = data['board']['snakes']
 
     add_bad_moves_to_grid(my_snake_head, snake_id, snakes, grid)
 
@@ -445,7 +418,7 @@ def path_to_safe_food(my_snake_head, my_snake_length, snake_id, goals, snakes, w
                 easy = False
         for snake in snakes:
             if(snake['id'] != snake_id):
-                enemy_dist = distance(point_to_list(snake['body']['data'][0]), goal)
+                enemy_dist = distance(point_to_list((snake['body'][0]['x'],snake['body'][0]['y'])), goal)
                 if enemy_dist <= distance(my_snake_head, goal):
                     easy = False
                     break
@@ -531,6 +504,8 @@ def path_to_tail(my_snake_head, my_snake_tail, waypoints, links, grid):
     global taunt
     current_path = None
     tail_neighbours = neighbours(my_snake_tail, grid, [])
+    if distance(my_snake_tail, my_snake_head) < 2:
+        return current_path
     for n in tail_neighbours:
         path = None
         # print('Looking for tail at ' + str(n) + ' my head at ' + str(my_snake_head))
@@ -563,7 +538,9 @@ def path_to_enemy_tail(my_snake_head, snake_id, snakes, waypoints, links, grid):
     for snake in snakes:
         if snake_id == snake['id']:
             continue
-        enemy_tail = point_to_list(snake['body']['data'][-1])
+        enemy_tail = point_to_list((snake['body'][-1]['x'],snake['body'][-1]['y']))
+        if distance(enemy_tail, my_snake_head) < 2:
+            continue
         tail_neighbours = neighbours(enemy_tail, grid, [])
         for n in tail_neighbours:
             path = None
@@ -590,8 +567,8 @@ def path_to_snake_body(my_snake_head, my_snake_id, snakes, waypoints, links, gri
     could_go_to = flood_fill(my_snake_head, grid, DEATH_POSITIONS)
     for snake in snakes:
         body_pos_counter = 0
-        snake['body']['data'].reverse()
-        for body in snake['body']['data']:
+        snake['body'].reverse()
+        for body in snake['body']:
             body_pos_counter = body_pos_counter + 1
             '''if body_pos_counter % 2:
                 continue'''
@@ -600,7 +577,7 @@ def path_to_snake_body(my_snake_head, my_snake_id, snakes, waypoints, links, gri
                 continue
                 '''if path_distance(current_path) < distance(my_snake_head, point_to_list(body)):
                     continue'''
-            body_neighbours = neighbours(point_to_list(body), grid, [])
+            body_neighbours = neighbours(point_to_list((body['x'], body['y'])), grid, [])
             for n in body_neighbours:
                 if n not in could_go_to:
                     continue
@@ -621,7 +598,7 @@ def path_to_snake_body(my_snake_head, my_snake_id, snakes, waypoints, links, gri
                         current_path = path
 
     for snake in snakes:
-        snake['body']['data'].reverse()
+        snake['body'].reverse()
 
     if current_path is not None:
         taunt = 'Following Anybody'
@@ -639,7 +616,7 @@ def corner_enemy(my_snake_head, my_snake_length, my_snake_id, snakes, waypoints,
         if my_snake_id == snake['id']:
             continue
 
-        enemy_head = point_to_list(snake['body']['data'][0])
+        enemy_head = point_to_list((snake['body'][0]['x'],snake['body'][0]['y']))
 
         enemy_head_neighbours = neighbours(enemy_head, grid, DEATH_POSITIONS)
         if len(enemy_head_neighbours) != 1:
@@ -674,7 +651,7 @@ def corner_enemy(my_snake_head, my_snake_length, my_snake_id, snakes, waypoints,
             enemy_dist = path_distance(enemy_path)
 
         larger_and_close = False
-        if(path_distance(my_path) <= enemy_dist and my_snake_length > snake['length']):
+        if(path_distance(my_path) <= enemy_dist and my_snake_length > len(snake['body'])):
             larger_and_close = True
 
         if(path_distance(my_path) < enemy_dist or larger_and_close):
@@ -701,12 +678,12 @@ def path_to_bully_enemy(my_snake_head, my_snake_length, snake_id, goals, snakes,
         if snake_id == snake['id']:
             continue
 
-        enemy_head = point_to_list(snake['body']['data'][0])
-        if my_snake_length > snake['length']:
+        enemy_head = point_to_list((snake['body'][0]['x'], snake['body'][0]['y']))
+        if my_snake_length > len(snake['body']):
             head_neighbours = neighbours(enemy_head, grid, [])
         else:
             head_neighbours = []
-        forward = get_forward_node(enemy_head, point_to_list(snake['body']['data'][1]), grid)
+        forward = get_forward_node(enemy_head, point_to_list((snake['body'][1]['x'], snake['body'][1]['y'])), grid)
         if forward is not None:
             move_dir = direction(enemy_head, forward)
             pos = move_to_position(enemy_head, move_dir)
@@ -797,7 +774,6 @@ def find_best_move(my_snake_head, my_snake_tail, snake_id, snakes, grid, waypoin
             if size is None:
                 size = s
             if size <= s:
-                print('Moving to position with space')
                 move = move = direction(my_snake_head, n)
                 size = s
     else:
@@ -852,16 +828,16 @@ def find_best_move(my_snake_head, my_snake_tail, snake_id, snakes, grid, waypoin
 def start():
     data = bottle.request.json
     if data is not None:
-        game_id = data['game_id']
+        game_id = data['game']['id']
         print("New game started!")
-        board_width = data['width']
-        board_height = data['height']
+        board_width = data['board']['width']
+        board_height = data['board']['height']
         print(str(game_id) + " " + str(board_width) + " " + str(board_height))
 
     # TODO: Do things with data
 
     return {
-        'color': 'DarkMagenta',
+        'color': 'blue',
         'secondary_color': 'red',
         'taunt': 'Time for some b snake boys!',
         'name': 'Lil Big B',
